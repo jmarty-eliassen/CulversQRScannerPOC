@@ -1,0 +1,39 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Setup .NET SDK
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: 10.0.x
+
+    - name: Restore dependencies
+      run: dotnet restore "CulversQRCodeScanner.csproj"
+
+    - name: Build project
+      run: dotnet build "CulversQRCodeScanner.csproj" --configuration Release --no-restore
+
+    - name: Publish project
+      run: dotnet publish "CulversQRCodeScanner.csproj" --configuration Release --no-restore --output ./publish
+
+    - name: Build Docker image
+      run: docker build -t culvers-qrcode-scanner .
+
+    - name: Run container tests
+      run: |
+        docker run --rm -d --name culvers-qrcode-scanner-test -p 8080:80 culvers-qrcode-scanner
+        sleep 5
+        curl -f http://localhost:8080 >/dev/null
+        docker stop culvers-qrcode-scanner-test

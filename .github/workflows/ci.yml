@@ -28,12 +28,8 @@ jobs:
     - name: Publish project
       run: dotnet publish "CulversQRCodeScanner.csproj" --configuration Release --no-restore --output ./publish
 
-    - name: Build Docker image
-      run: docker build -t culvers-qrcode-scanner .
-
-    - name: Run container tests
-      run: |
-        docker run --rm -d --name culvers-qrcode-scanner-test -p 8080:80 culvers-qrcode-scanner
-        sleep 5
-        curl -f http://localhost:8080 >/dev/null
-        docker stop culvers-qrcode-scanner-test
+    - name: Deploy to GitHub Pages
+      uses: peaceiris/actions-gh-pages@v3
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: ./publish/wwwroot

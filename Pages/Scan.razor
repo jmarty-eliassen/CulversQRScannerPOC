@@ -1,33 +1,46 @@
 @page "/scan"
 @inject IJSRuntime JS
 @inject Services.MockRedemptionService RedemptionService
+@inject NavigationManager Nav
 
 <PageTitle>Scan QR Code</PageTitle>
 
-<h1>QR Code Redemption</h1>
-<p>Tap the camera button to scan a QR code and redeem the offer.</p>
+<div class="scan-page">
+    <header class="scan-header">
+        <div class="logo"><img src="/assets/culvers-logo.svg" alt="Culver's logo" class="culvers-logo" /></div>
+        <button class="close-btn" @onclick="Close">✕</button>
+    </header>
 
-<div class="mb-3">
-    <button class="btn btn-primary" @onclick="StartScan">Start QR Scan</button>
-</div>
-
-<div>@statusMessage</div>
-
-@if (scanResult is not null)
-{
-    <div class="card mt-3">
-        <div class="card-body">
-            <h5 class="card-title">Scan result</h5>
-            <p><strong>Content:</strong> @scanResult.QRCode</p>
-            <p><strong>Valid:</strong> @(scanResult.IsValid ? "Yes" : "No")</p>
-            <p><strong>Message:</strong> @scanResult.Message</p>
-            <p class="text-muted"><small>Processed at @scanResult.ProcessedAt</small></p>
+    <main class="scan-main">
+        <div class="qr-graphic" aria-hidden="true">
+            <img src="/assets/qr-graphic.svg" alt="QR graphic" class="qr-icon" />
         </div>
-    </div>
-}
 
-<div class="mt-4">
-    <video id="qr-video" autoplay muted playsinline style="width:100%;max-width:480px;border:1px solid #ccc;border-radius:8px;" hidden></video>
+        <h2 class="scan-title">SCAN REWARD</h2>
+        <p class="scan-copy">Scan Delicious Rewards user reward code. Upon successful scan, distribute VIP merch.</p>
+
+        <div class="scan-actions">
+            <button class="btn btn-primary btn-scan" @onclick="StartScan">@((isScanning) ? "Scanning..." : "SCAN QR CODE")</button>
+            <button class="btn btn-link manual-link" @onclick="EnterCodeManually">Enter Code Manually</button>
+        </div>
+
+        <video id="qr-video" autoplay muted playsinline hidden></video>
+
+        <div class="scan-status">@statusMessage</div>
+
+        @if (scanResult is not null)
+        {
+            <div class="card mt-3">
+                <div class="card-body">
+                    <h5 class="card-title">Scan result</h5>
+                    <p><strong>Content:</strong> @scanResult.QRCode</p>
+                    <p><strong>Valid:</strong> @(scanResult.IsValid ? "Yes" : "No")</p>
+                    <p><strong>Message:</strong> @scanResult.Message</p>
+                    <p class="text-muted"><small>Processed at @scanResult.ProcessedAt</small></p>
+                </div>
+            </div>
+        }
+    </main>
 </div>
 
 @code {
@@ -72,5 +85,31 @@
             isScanning = false;
             await JS.InvokeVoidAsync("qrScanner.stopScanner");
         }
+    }
+
+    private async Task EnterCodeManually()
+    {
+        var code = await JS.InvokeAsync<string?>("prompt", "Enter reward code:");
+        if (string.IsNullOrWhiteSpace(code))
+        {
+            statusMessage = "No code entered.";
+            return;
+        }
+
+        statusMessage = "Processing manual code...";
+        try
+        {
+            scanResult = await RedemptionService.RedeemAsync(code);
+            statusMessage = scanResult.IsValid ? "Redemption complete." : "Redemption failed.";
+        }
+        catch (Exception ex)
+        {
+            statusMessage = $"An error occurred: {ex.Message}";
+        }
+    }
+
+    private void Close()
+    {
+        Nav.NavigateTo("/");
     }
 }

@@ -13,6 +13,8 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
 
     - name: Setup .NET SDK
       uses: actions/setup-dotnet@v4
@@ -28,8 +30,19 @@ jobs:
     - name: Publish project
       run: dotnet publish "CulversQRCodeScanner.csproj" --configuration Release --no-restore --output ./publish
 
+    - name: Show publish output
+      run: |
+        echo "Publish directory contents:"
+        ls -la ./publish || true
+        echo "Publish/wwwroot contents:"
+        ls -la ./publish/wwwroot || true
+
     - name: Deploy to GitHub Pages
       uses: peaceiris/actions-gh-pages@v3
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
         publish_dir: ./publish/wwwroot
+        publish_branch: gh-pages
+        user_name: github-actions
+        user_email: github-actions@github.com
+        allow_empty_commit: true

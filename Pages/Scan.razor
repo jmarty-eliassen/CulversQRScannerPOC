@@ -1,0 +1,76 @@
+@page "/scan"
+@inject IJSRuntime JS
+@inject Services.MockRedemptionService RedemptionService
+
+<PageTitle>Scan QR Code</PageTitle>
+
+<h1>QR Code Redemption</h1>
+<p>Tap the camera button to scan a QR code and redeem the offer.</p>
+
+<div class="mb-3">
+    <button class="btn btn-primary" @onclick="StartScan">Start QR Scan</button>
+</div>
+
+<div>@statusMessage</div>
+
+@if (scanResult is not null)
+{
+    <div class="card mt-3">
+        <div class="card-body">
+            <h5 class="card-title">Scan result</h5>
+            <p><strong>Content:</strong> @scanResult.QRCode</p>
+            <p><strong>Valid:</strong> @(scanResult.IsValid ? "Yes" : "No")</p>
+            <p><strong>Message:</strong> @scanResult.Message</p>
+            <p class="text-muted"><small>Processed at @scanResult.ProcessedAt</small></p>
+        </div>
+    </div>
+}
+
+<div class="mt-4">
+    <video id="qr-video" autoplay muted playsinline style="width:100%;max-width:480px;border:1px solid #ccc;border-radius:8px;" hidden></video>
+</div>
+
+@code {
+    private string statusMessage = "Ready to scan.";
+    private Services.RedemptionResponse? scanResult;
+    private bool isScanning;
+
+    private async Task StartScan()
+    {
+        if (isScanning)
+        {
+            statusMessage = "Already scanning...";
+            return;
+        }
+
+        statusMessage = "Requesting camera access...";
+        isScanning = true;
+
+        try
+        {
+            var qrCode = await JS.InvokeAsync<string?>("qrScanner.startScanner");
+            if (string.IsNullOrWhiteSpace(qrCode))
+            {
+                statusMessage = "No QR code detected. Please try again.";
+                return;
+            }
+
+            statusMessage = "Processing redemption...";
+            scanResult = await RedemptionService.RedeemAsync(qrCode);
+            statusMessage = scanResult.IsValid ? "Redemption complete." : "Redemption failed.";
+        }
+        catch (JSException ex)
+        {
+            statusMessage = $"Camera access failed: {ex.Message}";
+        }
+        catch (Exception ex)
+        {
+            statusMessage = $"An error occurred: {ex.Message}";
+        }
+        finally
+        {
+            isScanning = false;
+            await JS.InvokeVoidAsync("qrScanner.stopScanner");
+        }
+    }
+}

@@ -1,13 +1,13 @@
 self.assetsManifest = {
-  "version": "uIhaa6/P",
+  "version": "Fu1XDKx+",
   "assets": [
     {
       "hash": "sha256-Cmw+Kbz8O37nsCv6m7tEvWPYWaiOXOQ6L898sI9FuYQ=",
       "url": "CulversQRCodeScanner.styles.css"
     },
     {
-      "hash": "sha256-IUE3e9UBwZPxzwMHrWXuUt0nMNu26KsMR5Ql36Mkx90=",
-      "url": "_framework/CulversQRCodeScanner.vwk0tixaut.wasm"
+      "hash": "sha256-EY7gP3H/u8zB0qhHatnuBBEUjpoAQ2jLGGfO2qtxvwQ=",
+      "url": "_framework/CulversQRCodeScanner.7qset7f95j.wasm"
     },
     {
       "hash": "sha256-qyCl6OHrVf7A0KCIqx7dGXoi0vzQwVIfhtFzSdrm3+k=",
@@ -150,8 +150,8 @@ self.assetsManifest = {
       "url": "_framework/blazor.webassembly.958z1vx7fr.js"
     },
     {
-      "hash": "sha256-H7gp2lyQMkqBAFNaB+oqFLjRFV6L53c9U7WLBL1OXYY=",
-      "url": "_framework/dotnet.1osvx5zmw5.js"
+      "hash": "sha256-CarWaxgaGE5miEubv2k2z3fpcmAphqCNkf7yUhXFKZ4=",
+      "url": "_framework/dotnet.dbjpwjj0cv.js"
     },
     {
       "hash": "sha256-kkp5wX0htwkBcZt5WmEiKmhBqjqdCJtGc+koldfyoDQ=",
@@ -178,7 +178,15 @@ self.assetsManifest = {
       "url": "_framework/icudt_no_CJK.lfu7j35m59.dat"
     },
     {
-      "hash": "sha256-CsChHlHUYGbuIEdR+5X9lxWNazWkgwxEsDPWRPQmRpQ=",
+      "hash": "sha256-AILLhLmWiImqT5JDT+QB31j5bp8cmOZxcy3ksVNhQgA=",
+      "url": "assets/culvers-logo.svg"
+    },
+    {
+      "hash": "sha256-07Ci6rM31LobLDOxmtAenuQK6sPfEWdKnxDliUUa+nM=",
+      "url": "assets/qr-graphic.svg"
+    },
+    {
+      "hash": "sha256-GfmOkij5Jc3vcOy/1fBhITevGE135IamPdpRhZ+kHb0=",
       "url": "css/app.css"
     },
     {
@@ -194,7 +202,7 @@ self.assetsManifest = {
       "url": "icon-512.png"
     },
     {
-      "hash": "sha256-UJ46RIVeC6aR35T+IXk9rirhXp8n4G3aFaswQa5/Me4=",
+      "hash": "sha256-g8n6kv/17i9Ha5lFTR9SYgnKKlRe2q3kX6TI/q73BeA=",
       "url": "index.html"
     },
     {

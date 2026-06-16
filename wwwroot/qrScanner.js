@@ -26,46 +26,64 @@ window.qrScanner = {
             throw new Error('Unable to access the camera. ' + err?.message);
         }
 
-        if (!('BarcodeDetector' in window)) {
-            this.stopScanner();
-            throw new Error('The browser does not support the Barcode Detector API.');
-        }
+        const useBarcodeDetector = 'BarcodeDetector' in window;
+        if (useBarcodeDetector) {
+            const supportedFormats = await window.BarcodeDetector.getSupportedFormats();
+            if (!supportedFormats.includes('qr_code')) {
+                this.stopScanner();
+                throw new Error('QR code scanning is not supported on this device.');
+            }
 
-        const supportedFormats = await window.BarcodeDetector.getSupportedFormats();
-        if (!supportedFormats.includes('qr_code')) {
-            this.stopScanner();
-            throw new Error('QR code scanning is not supported on this device.');
-        }
+            this.detector = new BarcodeDetector({ formats: ['qr_code'] });
 
-        this.detector = new BarcodeDetector({ formats: ['qr_code'] });
+            return new Promise((resolve, reject) => {
+                let attempts = 0;
+                const scanFrame = async () => {
+                    try {
+                        const barcodes = await this.detector.detect(this.video);
+                        if (barcodes?.length > 0) {
+                            const result = barcodes[0]?.rawValue ?? '';
+                            this.stopScanner();
+                            resolve(result);
+                            return;
+                        }
+                    } catch (error) {
+                        console.warn('Barcode detection failed', error);
+                    }
 
-        return new Promise((resolve, reject) => {
-            let attempts = 0;
-            const scanFrame = async () => {
-                try {
-                    const barcodes = await this.detector.detect(this.video);
-                    if (barcodes?.length > 0) {
-                        const result = barcodes[0]?.rawValue ?? '';
+                    attempts += 1;
+                    if (attempts >= 100) {
                         this.stopScanner();
-                        resolve(result);
+                        resolve('');
                         return;
                     }
-                } catch (error) {
-                    console.warn('Barcode detection failed', error);
+
+                    this.scanTimer = window.setTimeout(scanFrame, 300);
+                };
+
+                scanFrame();
+            });
+        }
+
+        if (typeof ZXing === 'undefined' || typeof ZXing.BrowserQRCodeReader === 'undefined') {
+            this.stopScanner();
+            throw new Error('The browser does not support the Barcode Detector API, and no fallback library is available.');
+        }
+
+        const codeReader = new ZXing.BrowserQRCodeReader();
+
+        return codeReader.decodeOnceFromVideoDevice(null, this.video)
+            .then(result => {
+                this.stopScanner();
+                return result.text || '';
+            })
+            .catch(err => {
+                this.stopScanner();
+                if (err && err.name === 'NotFoundException') {
+                    return '';
                 }
-
-                attempts += 1;
-                if (attempts >= 100) {
-                    this.stopScanner();
-                    resolve('');
-                    return;
-                }
-
-                this.scanTimer = window.setTimeout(scanFrame, 300);
-            };
-
-            scanFrame();
-        });
+                throw err;
+            });
     },
 
     stopScanner() {

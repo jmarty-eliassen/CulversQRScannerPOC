@@ -12,8 +12,20 @@
     </header>
 
     <main class="scan-main">
-        <div class="qr-graphic" aria-hidden="true">
-            <img src="/assets/qr-graphic.svg" alt="QR graphic" class="qr-icon" />
+        <div class="scan-viewport" aria-live="polite">
+            @if (!isScanning)
+            {
+                <div class="qr-graphic" aria-hidden="true">
+                    <img src="/assets/qr-graphic.svg" alt="QR graphic" class="qr-icon" />
+                </div>
+            }
+            else
+            {
+                <div class="video-wrapper">
+                    <video id="qr-video" autoplay muted playsinline class="scan-video"></video>
+                    <div class="scan-frame" aria-hidden="true"></div>
+                </div>
+            }
         </div>
 
         <h2 class="scan-title">SCAN REWARD</h2>
@@ -23,8 +35,6 @@
             <button class="btn btn-primary btn-scan" @onclick="StartScan">@((isScanning) ? "Scanning..." : "SCAN QR CODE")</button>
             <button class="btn btn-link manual-link" @onclick="EnterCodeManually">Enter Code Manually</button>
         </div>
-
-        <video id="qr-video" autoplay muted playsinline hidden></video>
 
         <div class="scan-status">@statusMessage</div>
 

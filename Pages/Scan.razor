@@ -22,22 +22,40 @@
                         <img src="/assets/qr-graphic.svg" alt="QR graphic" class="qr-icon" />
                     </div>
                 }
-                else
+                else if (scanState == ScanState.Scanning)
                 {
                     <video id="qr-video" autoplay muted playsinline class="scan-video"></video>
                     <div class="scan-frame" aria-hidden="true"></div>
+                }
+                else
+                {
+                    <div class="qr-graphic" aria-hidden="true">
+                        <img src="/assets/qr-graphic.svg" alt="QR graphic" class="qr-icon" />
+                    </div>
+                }
 
-                    @if (scanState == ScanState.Success)
-                    {
-                        <div class="scan-success-overlay" aria-live="assertive">
-                            <div class="scan-success-card">
-                                <div class="success-icon">✓</div>
-                                <div class="success-title">SUCCESS</div>
-                                <div class="success-copy">Your QR code has been scanned and redeemed.</div>
-                                <button class="btn btn-primary btn-scan btn-success-action" @onclick="ResetScan">Scan Another Code</button>
-                            </div>
+                @if (scanState == ScanState.Success)
+                {
+                    <div class="scan-success-overlay" aria-live="assertive">
+                        <div class="scan-success-card">
+                            <div class="success-icon">✓</div>
+                            <div class="success-title">SUCCESS</div>
+                            <div class="success-copy">Your QR code has been scanned and redeemed.</div>
+                            <button class="btn btn-primary btn-scan btn-success-action" @onclick="ResetScan">Scan Another Code</button>
                         </div>
-                    }
+                    </div>
+                }
+                else if (scanState == ScanState.Invalid)
+                {
+                    <div class="scan-invalid-overlay" aria-live="assertive">
+                        <div class="scan-invalid-card">
+                            <div class="invalid-icon">✕</div>
+                            <div class="invalid-title">INVALID CODE</div>
+                            <div class="invalid-copy">The code you entered is not valid. Try scanning again or enter the reward code manually.</div>
+                            <button class="btn btn-invalid-action" @onclick="ResetScan">SCAN ANOTHER CODE</button>
+                            <button class="btn btn-link invalid-link" @onclick="EnterCodeManually">Enter Code Manually</button>
+                        </div>
+                    </div>
                 }
             </div>
         </div>
@@ -45,7 +63,18 @@
         <h2 class="scan-title">SCAN REWARD</h2>
         <p class="scan-copy">Scan Delicious Rewards user reward code. Upon successful scan, distribute VIP merch.</p>
 
-        @if (scanState != ScanState.Success)
+        @if (scanState == ScanState.ManualInput)
+        {
+            <div class="manual-entry-card">
+                <div class="input-label">INPUT REWARD</div>
+                <input class="form-control manual-code-input" @bind="manualCode" placeholder="Enter reward code" />
+                <button class="btn btn-primary btn-scan" @onclick="SubmitManualCode" disabled="@string.IsNullOrWhiteSpace(manualCode)">CONTINUE</button>
+                <button class="btn btn-link manual-link" @onclick="ResetScan">Scan Another Code</button>
+            </div>
+
+            <div class="scan-status">@statusMessage</div>
+        }
+        else if (scanState != ScanState.Success)
         {
             <div class="scan-actions">
                 <button class="btn btn-primary btn-scan" @onclick="StartScan" disabled="@(scanState == ScanState.Scanning)">@((scanState == ScanState.Scanning) ? "Scanning..." : "SCAN QR CODE")</button>
@@ -58,24 +87,12 @@
         {
             <div class="scan-status scan-status-success">@statusMessage</div>
         }
-
-        @if (scanResult is not null)
-        {
-            <div class="card mt-3">
-                <div class="card-body">
-                    <h5 class="card-title">Scan result</h5>
-                    <p><strong>Content:</strong> @scanResult.QRCode</p>
-                    <p><strong>Valid:</strong> @(scanResult.IsValid ? "Yes" : "No")</p>
-                    <p><strong>Message:</strong> @scanResult.Message</p>
-                    <p class="text-muted"><small>Processed at @scanResult.ProcessedAt</small></p>
-                </div>
-            </div>
-        }
     </main>
 </div>
 
 @code {
     private string statusMessage = "Ready to scan.";
+    private string manualCode = string.Empty;
     private Services.RedemptionResponse? scanResult;
     private ScanState scanState = ScanState.PreScan;
 
@@ -106,7 +123,6 @@
             statusMessage = "Processing redemption...";
             try
             {
-                // Randomly choose success or fail mock endpoint for testing
                 var rnd = new Random();
                 var successUrl = "https://test-api.culvers.com/punchh/Mock/checkoffsiteredeemable-success";
                 var failUrl = "https://test-api.culvers.com/punchh/Mock/checkoffsiteredeemable-fail";
@@ -138,8 +154,9 @@
             {
                 scanResult = await RedemptionService.RedeemAsync(qrCode);
             }
-            scanState = scanResult.IsValid ? ScanState.Success : ScanState.PreScan;
-            statusMessage = scanResult.IsValid ? "Scan complete." : "Redemption failed.";
+
+            scanState = scanResult.IsValid ? ScanState.Success : ScanState.Invalid;
+            statusMessage = scanResult.IsValid ? "Scan complete." : "Invalid code.";
         }
         catch (JSException ex)
         {
@@ -160,33 +177,49 @@
         }
     }
 
-    private async Task ResetScan()
+    private async Task SubmitManualCode()
     {
-        scanState = ScanState.PreScan;
-        statusMessage = "Ready to scan.";
-        scanResult = null;
-        await JS.InvokeVoidAsync("qrScanner.stopScanner");
-    }
-
-    private async Task EnterCodeManually()
-    {
-        var code = await JS.InvokeAsync<string?>("prompt", "Enter reward code:");
-        if (string.IsNullOrWhiteSpace(code))
+        if (string.IsNullOrWhiteSpace(manualCode))
         {
-            statusMessage = "No code entered.";
+            statusMessage = "Enter a reward code to continue.";
             return;
         }
 
+        scanState = ScanState.Scanning;
         statusMessage = "Processing manual code...";
+        await InvokeAsync(StateHasChanged);
+        await Task.Yield();
+        await Task.Delay(100);
+
         try
         {
-            scanResult = await RedemptionService.RedeemAsync(code);
-            statusMessage = scanResult.IsValid ? "Redemption complete." : "Redemption failed.";
+            scanResult = await RedemptionService.RedeemAsync(manualCode.Trim());
+            scanState = scanResult.IsValid ? ScanState.Success : ScanState.Invalid;
+            statusMessage = scanResult.IsValid ? "Redemption complete." : "Invalid code.";
         }
         catch (Exception ex)
         {
             statusMessage = $"An error occurred: {ex.Message}";
+            scanState = ScanState.PreScan;
         }
+    }
+
+    private async Task ResetScan()
+    {
+        scanState = ScanState.PreScan;
+        statusMessage = "Ready to scan.";
+        manualCode = string.Empty;
+        scanResult = null;
+        await JS.InvokeVoidAsync("qrScanner.stopScanner");
+    }
+
+    private Task EnterCodeManually()
+    {
+        manualCode = string.Empty;
+        scanResult = null;
+        scanState = ScanState.ManualInput;
+        statusMessage = "Enter code manually.";
+        return Task.CompletedTask;
     }
 
     private void Close()
@@ -198,6 +231,8 @@
     {
         PreScan,
         Scanning,
-        Success
+        ManualInput,
+        Success,
+        Invalid
     }
 }

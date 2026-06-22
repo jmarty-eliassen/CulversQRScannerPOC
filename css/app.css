@@ -259,10 +259,83 @@ code {
 }
 
 .scan-actions { display:flex; flex-direction:column; gap:12px; width:100%; max-width:320px; margin-top:8px; }
-.btn-scan { padding: 12px 18px; font-weight:700; background:#005696; border-color:#005696; }
+.btn-scan { padding: 12px 18px; font-weight:700; background:#005696; border-color:#005696; color:#fff; }
+.btn-scan:disabled { opacity:.65; cursor:not-allowed; }
 .manual-link { color:#005696; background:transparent; border:none; text-decoration:underline; }
 
-.scan-status { margin-top:16px; color:#555; font-size:0.95rem; }
+.manual-entry-card { display:flex; flex-direction:column; gap:14px; align-items:center; width:100%; max-width:320px; margin:0 auto 16px; padding:20px; border:1px solid #dbe3ec; border-radius:20px; background:#f8fbff; }
+.input-label { font-size:.85rem; letter-spacing:.16em; text-transform:uppercase; color:#0b2340; font-weight:700; text-align:left; width:100%; }
+.manual-code-input { width:100%; padding:14px 16px; border-radius:14px; border:1px solid #bccddf; font-size:1rem; }
+.manual-code-input:focus { outline:none; border-color:#005696; box-shadow:0 0 0 0.15rem rgba(0,86,150,.18); }
+
+.scan-status { margin-top:16px; color:#5f6f84; font-size:0.95rem; }
+
+.scan-invalid-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(255, 255, 255, 0.95);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 16px;
+    padding: 20px;
+}
+
+.scan-invalid-card {
+    max-width: 320px;
+    width: 100%;
+    padding: 28px 24px;
+    background: #fff6f6;
+    border: 1px solid #f1c0c0;
+    border-radius: 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    text-align: center;
+}
+
+.invalid-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: #e12e3d;
+    color: #fff;
+    display: grid;
+    place-items: center;
+    font-size: 1.75rem;
+    font-weight: 700;
+}
+
+.invalid-title {
+    font-family: 'Poppins', sans-serif;
+    font-weight: 800;
+    font-size: 1.6rem;
+    color: #0b2340;
+}
+
+.invalid-copy {
+    color: #5f4352;
+    font-size: 0.95rem;
+    line-height: 1.6;
+}
+
+.btn-invalid-action {
+    width: 100%;
+    padding: 14px 18px;
+    background: #e12e3d;
+    border-color: #e12e3d;
+    color: #fff;
+    font-weight: 700;
+    border-radius: 12px;
+}
+
+.invalid-link {
+    color: #5f4352;
+    background: transparent;
+    border: none;
+    text-decoration: underline;
+}
 
 @media (min-width: 700px) {
     .scan-main { padding: 48px 80px; }

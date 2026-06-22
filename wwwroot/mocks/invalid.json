@@ -1,0 +1,6 @@
+{
+  "QRCode": "SAMPLE-INVALID-CODE",
+  "IsValid": false,
+  "Message": "The QR code is not valid or has expired.",
+  "ProcessedAt": "2026-06-22T00:00:00Z"
+}

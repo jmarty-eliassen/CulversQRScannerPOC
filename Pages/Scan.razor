@@ -1,6 +1,8 @@
+@page "/"
 @page "/scan"
 @inject IJSRuntime JS
 @inject Services.MockRedemptionService RedemptionService
+@inject HttpClient Http
 @inject NavigationManager Nav
 
 <PageTitle>Scan QR Code</PageTitle>
@@ -102,7 +104,40 @@
             }
 
             statusMessage = "Processing redemption...";
-            scanResult = await RedemptionService.RedeemAsync(qrCode);
+            try
+            {
+                // Randomly choose success or fail mock endpoint for testing
+                var rnd = new Random();
+                var successUrl = "https://test-api.culvers.com/punchh/Mock/checkoffsiteredeemable-success";
+                var failUrl = "https://test-api.culvers.com/punchh/Mock/checkoffsiteredeemable-fail";
+                var targetUrl = (rnd.Next(2) == 0) ? successUrl : failUrl;
+
+                var request = new HttpRequestMessage(HttpMethod.Post, targetUrl);
+                request.Headers.Add("Ocp-Apim-Subscription-Key", "22f000af3faa43f783da93d214d82e96");
+                request.Content = JsonContent.Create(new { QRCode = qrCode });
+
+                var resp = await Http.SendAsync(request);
+                if (resp.IsSuccessStatusCode)
+                {
+                    var parsed = await resp.Content.ReadFromJsonAsync<Services.RedemptionResponse>();
+                    if (parsed is not null)
+                    {
+                        scanResult = parsed;
+                    }
+                    else
+                    {
+                        scanResult = await RedemptionService.RedeemAsync(qrCode);
+                    }
+                }
+                else
+                {
+                    scanResult = await RedemptionService.RedeemAsync(qrCode);
+                }
+            }
+            catch
+            {
+                scanResult = await RedemptionService.RedeemAsync(qrCode);
+            }
             scanState = scanResult.IsValid ? ScanState.Success : ScanState.PreScan;
             statusMessage = scanResult.IsValid ? "Scan complete." : "Redemption failed.";
         }

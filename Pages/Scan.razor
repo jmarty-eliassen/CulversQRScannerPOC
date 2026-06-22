@@ -13,30 +13,49 @@
 
     <main class="scan-main">
         <div class="scan-viewport" aria-live="polite">
-            @if (!isScanning)
-            {
-                <div class="qr-graphic" aria-hidden="true">
-                    <img src="/assets/qr-graphic.svg" alt="QR graphic" class="qr-icon" />
-                </div>
-            }
-            else
-            {
-                <div class="video-wrapper">
+            <div class="video-wrapper">
+                @if (scanState == ScanState.PreScan)
+                {
+                    <div class="qr-graphic" aria-hidden="true">
+                        <img src="/assets/qr-graphic.svg" alt="QR graphic" class="qr-icon" />
+                    </div>
+                }
+                else
+                {
                     <video id="qr-video" autoplay muted playsinline class="scan-video"></video>
                     <div class="scan-frame" aria-hidden="true"></div>
-                </div>
-            }
+
+                    @if (scanState == ScanState.Success)
+                    {
+                        <div class="scan-success-overlay" aria-live="assertive">
+                            <div class="scan-success-card">
+                                <div class="success-icon">✓</div>
+                                <div class="success-title">SUCCESS</div>
+                                <div class="success-copy">Your QR code has been scanned and redeemed.</div>
+                                <button class="btn btn-primary btn-scan btn-success-action" @onclick="ResetScan">Scan Another Code</button>
+                            </div>
+                        </div>
+                    }
+                }
+            </div>
         </div>
 
         <h2 class="scan-title">SCAN REWARD</h2>
         <p class="scan-copy">Scan Delicious Rewards user reward code. Upon successful scan, distribute VIP merch.</p>
 
-        <div class="scan-actions">
-            <button class="btn btn-primary btn-scan" @onclick="StartScan">@((isScanning) ? "Scanning..." : "SCAN QR CODE")</button>
-            <button class="btn btn-link manual-link" @onclick="EnterCodeManually">Enter Code Manually</button>
-        </div>
+        @if (scanState != ScanState.Success)
+        {
+            <div class="scan-actions">
+                <button class="btn btn-primary btn-scan" @onclick="StartScan" disabled="@(scanState == ScanState.Scanning)">@((scanState == ScanState.Scanning) ? "Scanning..." : "SCAN QR CODE")</button>
+                <button class="btn btn-link manual-link" @onclick="EnterCodeManually">Enter Code Manually</button>
+            </div>
 
-        <div class="scan-status">@statusMessage</div>
+            <div class="scan-status">@statusMessage</div>
+        }
+        else
+        {
+            <div class="scan-status scan-status-success">@statusMessage</div>
+        }
 
         @if (scanResult is not null)
         {
@@ -56,18 +75,21 @@
 @code {
     private string statusMessage = "Ready to scan.";
     private Services.RedemptionResponse? scanResult;
-    private bool isScanning;
+    private ScanState scanState = ScanState.PreScan;
 
     private async Task StartScan()
     {
-        if (isScanning)
+        if (scanState == ScanState.Scanning)
         {
             statusMessage = "Already scanning...";
             return;
         }
 
+        scanState = ScanState.Scanning;
         statusMessage = "Requesting camera access...";
-        isScanning = true;
+        await InvokeAsync(StateHasChanged);
+        await Task.Yield();
+        await Task.Delay(200);
 
         try
         {
@@ -75,26 +97,40 @@
             if (string.IsNullOrWhiteSpace(qrCode))
             {
                 statusMessage = "No QR code detected. Please try again.";
+                scanState = ScanState.PreScan;
                 return;
             }
 
             statusMessage = "Processing redemption...";
             scanResult = await RedemptionService.RedeemAsync(qrCode);
-            statusMessage = scanResult.IsValid ? "Redemption complete." : "Redemption failed.";
+            scanState = scanResult.IsValid ? ScanState.Success : ScanState.PreScan;
+            statusMessage = scanResult.IsValid ? "Scan complete." : "Redemption failed.";
         }
         catch (JSException ex)
         {
             statusMessage = $"Camera access failed: {ex.Message}";
+            scanState = ScanState.PreScan;
         }
         catch (Exception ex)
         {
             statusMessage = $"An error occurred: {ex.Message}";
+            scanState = ScanState.PreScan;
         }
         finally
         {
-            isScanning = false;
-            await JS.InvokeVoidAsync("qrScanner.stopScanner");
+            if (scanState != ScanState.Success)
+            {
+                await JS.InvokeVoidAsync("qrScanner.stopScanner");
+            }
         }
+    }
+
+    private async Task ResetScan()
+    {
+        scanState = ScanState.PreScan;
+        statusMessage = "Ready to scan.";
+        scanResult = null;
+        await JS.InvokeVoidAsync("qrScanner.stopScanner");
     }
 
     private async Task EnterCodeManually()
@@ -121,5 +157,12 @@
     private void Close()
     {
         Nav.NavigateTo("/");
+    }
+
+    private enum ScanState
+    {
+        PreScan,
+        Scanning,
+        Success
     }
 }

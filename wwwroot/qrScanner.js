@@ -10,8 +10,27 @@ window.qrScanner = {
         }
 
         this.video = document.getElementById('qr-video');
+        // If the video element isn't present yet, wait briefly for it to appear
         if (!this.video) {
-            throw new Error('Video element not found.');
+            let attempts = 0;
+            while (!this.video && attempts < 20) {
+                await new Promise(r => setTimeout(r, 100));
+                this.video = document.getElementById('qr-video');
+                attempts += 1;
+            }
+        }
+
+        // If still not found, try to create and insert a video element as a fallback
+        if (!this.video) {
+            const wrapper = document.querySelector('.video-wrapper') || document.body;
+            const v = document.createElement('video');
+            v.id = 'qr-video';
+            v.autoplay = true;
+            v.muted = true;
+            v.playsInline = true;
+            v.className = 'scan-video';
+            wrapper.appendChild(v);
+            this.video = v;
         }
 
         let stream;
@@ -105,5 +124,44 @@ window.qrScanner = {
         }
 
         this.detector = null;
+    }
+};
+
+// Attach a local media stream directly to the video element. Returns true if attached.
+window.qrScanner.attachLocalStream = async function (videoId = 'qr-video') {
+    if (!navigator.mediaDevices?.getUserMedia) {
+        return false;
+    }
+
+    let video = document.getElementById(videoId);
+    let attempts = 0;
+    while (!video && attempts < 10) {
+        await new Promise(r => setTimeout(r, 100));
+        video = document.getElementById(videoId);
+        attempts += 1;
+    }
+
+    if (!video) {
+        const wrapper = document.querySelector('.video-wrapper') || document.body;
+        const v = document.createElement('video');
+        v.id = videoId;
+        v.autoplay = true;
+        v.muted = true;
+        v.playsInline = true;
+        v.className = 'scan-video';
+        wrapper.appendChild(v);
+        video = v;
+    }
+
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+        video.srcObject = stream;
+        video.hidden = false;
+        await video.play();
+        window.qrScanner.mediaStream = stream;
+        return true;
+    } catch (err) {
+        console.warn('attachLocalStream failed', err);
+        return false;
     }
 };
